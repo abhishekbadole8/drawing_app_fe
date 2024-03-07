@@ -1,8 +1,9 @@
 import React from 'react'
 import "../App.css";
-import { FaPen, FaRegCircle, FaRegSquare, FaEraser, FaMinus, FaLongArrowAltDown } from 'react-icons/fa';
+import { FaPen, FaRegCircle, FaRegSquare, FaEraser, FaMinus, FaLongArrowAltDown, FaUndoAlt, FaRedoAlt } from 'react-icons/fa';
+import { CiText } from "react-icons/ci";
 
-function Remote({ handleClick, color, setColor }) {
+function Remote({ handleClick, color, setColor, setLines, handleRedo, handleUndo }) {
 
     return (
         <aside className="controls">
@@ -30,6 +31,16 @@ function Remote({ handleClick, color, setColor }) {
                 <div className="tool-icon" onClick={() => handleClick('eraser')}>
                     <FaEraser />
                 </div>
+                <div className="tool-icon" onClick={() => handleUndo()}>
+                    <FaUndoAlt />
+                </div>
+                <div className="tool-icon" onClick={() => handleRedo()}>
+                    <FaRedoAlt />
+                </div>
+                <div className="tool-icon" onClick={() => handleClick('text')}>
+                    <CiText />
+                </div>
+
             </div>
 
             <button className="clear-button" onClick={() => setLines([])}>
