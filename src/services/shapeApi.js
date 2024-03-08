@@ -5,7 +5,7 @@ export async function postShape(shapeData) {
     return;
   }
   try {
-    const response = await axios.post("http://localhost:5000/api/shapes", {
+    const response = await axios.post("https://drawing-app-be.onrender.com/api/shapes", {
       ...shapeData,
     });
 
@@ -22,7 +22,7 @@ export async function postShape(shapeData) {
 
 export async function getShape() {
   try {
-    const response = await axios.get("http://localhost:5000/api/shapes");
+    const response = await axios.get("https://drawing-app-be.onrender.com/api/shapes");
     const data = await response.data;
     return data;
   } catch (error) {
