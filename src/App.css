@@ -50,14 +50,19 @@ body {
   align-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 18px;
 }
 
+.tool-icon-active {
+  background-color: rgb(200, 171, 171);
+  font-size: 19px;
+}
+
 .tool-icon:hover {
-  color: red;
-  font-size: 21px;
+  background-color: rgb(200, 171, 171);
+  font-size: 19px;
 }
 
 .clear-button {

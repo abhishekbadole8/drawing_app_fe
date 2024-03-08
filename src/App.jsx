@@ -1,93 +1,177 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Stage, Layer, Line } from 'react-konva';
+import { Stage, Arrow, Layer, Line, Circle, Rect, Transformer } from 'react-konva';
 import "./App.css";
 import Remote from './components/Remote';
+import { ACTIONS } from "./constants/constants";
+import { v4 as uuidv4 } from 'uuid';
 
 const App = () => {
-  const [tool, setTool] = useState('pen');
-  const [color, setColor] = useState('#000000');
-  const [lines, setLines] = useState([]);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [text, setText] = useState('');
-  const [history, setHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const textInputRef = useRef(null);
+  const stageRef = useRef();
+
+  const [action, setAction] = useState(ACTIONS.SELECT); // action
+  const [rectangles, setRectangles] = useState([]); // rectagle
+  const [circles, setCircles] = useState([]); // circle
+  const [arrows, setArrows] = useState([]); // arrow
+  const [lines, setLines] = useState([]); // straight line
+  const [scribbles, setScribbles] = useState([]); // pen
+  // const [shapes, setShapes] = useState([]);
+
+  const [strokeColor, setStrokeColor] = useState("#000"); // for stroke color - default #000(black)
+  const [strokeSize, setStrokeSize] = useState(2) // for stroke size
+
+  const isPaining = useRef();
+  const currentShapeId = useRef();
+  const transformerRef = useRef();
+
+  const isDraggable = action === ACTIONS.SELECT;
+
+  // Function to create shape data
+  // const createShapeData = (type, id, data) => {
+  //   return { type, id, ...data };
+  // };
 
   // mouse clicked
-  const handleMouseDown = (e) => {
-    const pos = e.target.getStage().getPointerPosition();
-    setIsDrawing(true);
-    if (tool === 'text') {
-      setText('');
-      const x = pos.x < 50 ? 50 : pos.x;
-      const y = pos.y < 50 ? 50 : pos.y;
-      textInputRef.current.style.display = 'block';
-      textInputRef.current.style.left = `${x}px`;
-      textInputRef.current.style.top = `${y}px`;
-      textInputRef.current.focus();
-    } else {
-      setLines([...lines, { tool, color, points: [pos.x, pos.y] }]);
+  const handleMouseDown = () => {
+    if (action === ACTIONS.SELECT) return;
+
+    const stage = stageRef.current;
+    const { x, y } = stage.getPointerPosition();
+    const id = uuidv4();
+
+    currentShapeId.current = id;
+    isPaining.current = true;
+
+    switch (action) {
+      case ACTIONS.RECTANGLE:
+        setRectangles((rectangles) => [
+          ...rectangles, {
+            id, x, y, height: 10, width: 10, strokeColor, strokeWidth: strokeSize
+          },
+        ]);
+        break;
+      case ACTIONS.LINE:
+        setLines((line) => [
+          ...line, { id, points: [x, y, x, y], strokeColor, strokeWidth: strokeSize },
+        ]);
+        break;
+      case ACTIONS.CIRCLE:
+        setCircles((circles) => [
+          ...circles, {
+            id, x, y, radius: 5, strokeColor, strokeWidth: strokeSize
+          }]);
+        break;
+      case ACTIONS.ARROW:
+        setArrows((arrows) => [
+          ...arrows, { id, points: [x, y, x + 10, y + 10], strokeColor, strokeWidth: strokeSize },
+        ]);
+        break;
+      case ACTIONS.SCRIBBLE:
+        setScribbles((scribbles) => [
+          ...scribbles, { id, points: [x, y], strokeColor, strokeWidth: strokeSize }
+        ])
+        break
     }
   };
 
   // mouse clicked and drag
-  const handleMouseMove = (e) => {
-    if (!isDrawing) return;
+  const handleMouseMove = () => {
+    if (action === ACTIONS.SELECT || !isPaining.current) return;
 
-    const pos = e.target.getStage().getPointerPosition();
-    let lastLine = lines[lines.length - 1];
-    lastLine.points = lastLine.points.concat([pos.x, pos.y]);
-    setLines([...lines.slice(0, lines.length - 1), lastLine]);
+    const stage = stageRef.current;
+    const { x, y } = stage.getPointerPosition();
+
+    switch (action) {
+      case ACTIONS.LINE:
+        setLines((lines) =>
+          lines.map((line) => {
+            if (line.id === currentShapeId.current) {
+              return {
+                ...line, points: [line.points[0], line.points[1], x, y],
+              };
+            }
+            return line;
+          })
+        );
+        break;
+      case ACTIONS.RECTANGLE:
+        setRectangles((rectangles) =>
+          rectangles.map((rectangle) => {
+            if (rectangle.id === currentShapeId.current) {
+              return {
+                ...rectangle, width: x - rectangle.x, height: y - rectangle.y,
+              };
+            }
+            return rectangle;
+          })
+        );
+        break;
+      case ACTIONS.CIRCLE:
+        setCircles((circles) =>
+          circles.map((circle) => {
+            console.log(circle)
+            if (circle.id === currentShapeId.current) {
+              return {
+                ...circle,
+                radius: ((y - circle.y) ** 2 + (x - circle.x) ** 2) ** 0.5,
+              };
+            }
+            return circle;
+          })
+        );
+        break;
+      case ACTIONS.ARROW:
+        setArrows((arrows) =>
+          arrows.map((arrow) => {
+            if (arrow.id === currentShapeId.current) {
+              return {
+                ...arrow, points: [arrow.points[0], arrow.points[1], x, y],
+              };
+            }
+            return arrow;
+          })
+        );
+        break;
+      case ACTIONS.SCRIBBLE:
+        setScribbles((scribbles) =>
+          scribbles.map((scribble) => {
+            if (scribble.id === currentShapeId.current) {
+              return { ...scribble, points: [...scribble.points, x, y] }
+            }
+            return scribble;
+          })
+        )
+        break
+    }
   };
 
   // on mouse button remove
   const handleMouseUp = () => {
-    setIsDrawing(false);
-    saveToHistory()
+    isPaining.current = false;
   };
 
   // handling remote icon click
-  const handleClick = (selectedTool) => {
-    setTool(selectedTool)
+  const handleClick = (selectedAction) => {
+    setAction(selectedAction)
   }
 
-  const handleTextBlur = () => {
-    textInputRef.current.style.display = 'none';
-    setLines([...lines, { tool: 'text', color, text, position: [textInputRef.current.style.left, textInputRef.current.style.top] }]);
-  };
+  function onClick(e) {
+    if (action !== ACTIONS.SELECT) return;
+    const target = e.currentTarget;
+    transformerRef.current.nodes([target]);
+  }
 
-  useEffect(() => {
-    saveToHistory();
-  }, []);
+  console.log(rectangles);
 
-  const saveToHistory = () => {
-    setHistory([...history.slice(0, historyIndex + 1), lines]);
-    setHistoryIndex(historyIndex + 1);
-  };
-
-  const handleUndo = () => {
-    if (historyIndex > 0) {
-      setLines(history[historyIndex - 1]);
-      setHistoryIndex(historyIndex - 1);
-    }
-  };
-
-  const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
-      setLines(history[historyIndex + 1]);
-      setHistoryIndex(historyIndex + 1);
-    }
-  };
-  
   return (
     <div className="container">
 
-      <Remote handleClick={handleClick} color={color} setColor={setColor}
-        setLines={setLines} handleUndo={handleUndo} handleRedo={handleRedo} />
+      <Remote action={action} handleClick={handleClick}
+        setStrokeSize={setStrokeSize} setStrokeColor={setStrokeColor} />
 
       <div className="canvas-container">
         <Stage
+          ref={stageRef}
           width={window.innerWidth - 120}
           height={window.innerHeight}
           onMouseDown={handleMouseDown}
@@ -95,26 +179,86 @@ const App = () => {
           onMouseUp={handleMouseUp}
         >
           <Layer>
-            {lines.map((line, i) => {
-              if (line.tool === 'text') {
-                return (
-                  <Text key={i} text={line.text} x={parseInt(line.position[0])} y={parseInt(line.position[1])} fill={line.color} />
-                );
-              } else {
-                return (
-                  <Line
-                    key={i}
-                    points={line.points}
-                    stroke={line.color}
-                    strokeWidth={line.tool === 'eraser' ? 10 : 5}
-                    tension={0.5}
-                    lineCap="round"
-                    globalCompositeOperation={line.tool === 'eraser' ? 'destination-out' : 'source-over'}
-                  />
-                );
-              }
-            })}
+            <Rect
+              x={0}
+              y={0}
+              height={window.innerHeight}
+              width={window.innerWidth}
+              fill="#ffffff"
+              id="bg"
+              onClick={() => {
+                transformerRef.current.nodes([]);
+              }}
+            />
 
+            {rectangles.map((rectangle) => (
+              <Rect
+                key={rectangle.id}
+                x={rectangle.x}
+                y={rectangle.y}
+                stroke={rectangle.strokeColor}
+                strokeWidth={rectangle.strokeWidth}
+                fill='transparent'
+                height={rectangle.height}
+                width={rectangle.width}
+                draggable={isDraggable}
+                onClick={onClick}
+              />
+            ))}
+
+            {circles.map((circle) => (
+              <Circle
+                key={circle.id}
+                radius={circle.radius}
+                x={circle.x}
+                y={circle.y}
+                stroke={circle.strokeColor}
+                strokeWidth={circle.strokeWidth}
+                fill='transparent'
+                draggable={isDraggable}
+                onClick={onClick}
+              />
+            ))}
+
+            {arrows.map((arrow) => (
+              <Arrow
+                key={arrow.id}
+                points={arrow.points}
+                stroke={arrow.strokeColor}
+                strokeWidth={arrow.strokeWidth}
+                fill={arrow.fillColor}
+                draggable={isDraggable}
+                onClick={onClick}
+              />
+            ))}
+
+            {scribbles.map((scribble) => (
+              <Line
+                key={scribble.id}
+                lineCap="round"
+                lineJoin="round"
+                points={scribble.points}
+                stroke={scribble.strokeColor}
+                strokeWidth={scribble.strokeWidth}
+                fill={scribble.fillColor}
+                draggable={isDraggable}
+                onClick={onClick}
+              />
+            ))}
+
+            {lines.map((line) => (
+              <Line
+                key={line.id}
+                points={line.points}
+                stroke={line.strokeColor}
+                strokeWidth={line.strokeWidth}
+                draggable={isDraggable}
+                onClick={onClick}
+              />
+            ))}
+
+
+            <Transformer ref={transformerRef} />
           </Layer>
         </Stage>
 
