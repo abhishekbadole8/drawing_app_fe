@@ -116,7 +116,6 @@ const App = () => {
       case ACTIONS.CIRCLE:
         setCircles((circles) =>
           circles.map((circle) => {
-            console.log(circle)
             if (circle.id === currentShapeId.current) {
               return {
                 ...circle,
