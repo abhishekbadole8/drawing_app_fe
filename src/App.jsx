@@ -5,6 +5,8 @@ import "./App.css";
 import Remote from './components/Remote';
 import { ACTIONS } from "./constants/constants";
 import { v4 as uuidv4 } from 'uuid';
+import { getShape, postShape } from './services/shapeApi';
+import { assign } from 'lodash';
 
 const App = () => {
   const stageRef = useRef();
@@ -15,7 +17,7 @@ const App = () => {
   const [arrows, setArrows] = useState([]); // arrow
   const [lines, setLines] = useState([]); // straight line
   const [scribbles, setScribbles] = useState([]); // pen
-  // const [shapes, setShapes] = useState([]);
+  const [checkMouseUp, setCheckMouseUp] = useState(false)
 
   const [strokeColor, setStrokeColor] = useState("#000"); // for stroke color - default #000(black)
   const [strokeSize, setStrokeSize] = useState(2) // for stroke size
@@ -26,10 +28,6 @@ const App = () => {
 
   const isDraggable = action === ACTIONS.SELECT;
 
-  // Function to create shape data
-  // const createShapeData = (type, id, data) => {
-  //   return { type, id, ...data };
-  // };
 
   // mouse clicked
   const handleMouseDown = () => {
@@ -93,6 +91,7 @@ const App = () => {
             return line;
           })
         );
+
         break;
       case ACTIONS.RECTANGLE:
         setRectangles((rectangles) =>
@@ -146,8 +145,10 @@ const App = () => {
   };
 
   // on mouse button remove
-  const handleMouseUp = () => {
+  const handleMouseUp = async () => {
     isPaining.current = false;
+    setCheckMouseUp(true)
+
   };
 
   // handling remote icon click
@@ -160,8 +161,58 @@ const App = () => {
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
   }
+  
+  useEffect(() => {
+    const getShapeData = async () => {
+      try {
+        const items = await getShape()
+        items.map((item) => {
+          if (item.type == 'RECTANGLE') {
+            setRectangles([...item.data])
+          }
+          if (item.type == 'CIRCLE') {
+            setCircles([...item.data])
+          }
+          if (item.type == 'LINE') {
+            setLines([...item.data])
+          }
+          if (item.type == 'ARROW') {
+            setArrows([...item.data])
+          }
+          if (item.type == 'SCRIBBLE') {
+            setScribbles([...item.data])
+          }
+        })
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getShapeData()
+  }, [])
 
-  console.log(rectangles);
+  useEffect(() => {
+    const handleUpdate = async () => {
+      switch (action) {
+        case ACTIONS.RECTANGLE:
+          await postShape({ type: action, data: rectangles })
+          break;
+        case ACTIONS.CIRCLE:
+          await postShape({ type: action, data: circles })
+          break;
+        case ACTIONS.LINE:
+          await postShape({ type: action, data: lines })
+          break;
+        case ACTIONS.ARROW:
+          await postShape({ type: action, data: arrows })
+          break;
+        case ACTIONS.SCRIBBLE:
+          await postShape({ type: action, data: scribbles })
+          break;
+      }
+    }
+    handleUpdate()
+    setCheckMouseUp(false)
+  }, [checkMouseUp])
 
   return (
     <div className="container">
