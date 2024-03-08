@@ -5,8 +5,7 @@ import "./App.css";
 import Remote from './components/Remote';
 import { ACTIONS } from "./constants/constants";
 import { v4 as uuidv4 } from 'uuid';
-import { getShape, postShape } from './services/shapeApi';
-import { assign } from 'lodash';
+import { deleteShapes, getShape, postShape } from './services/shapeApi';
 
 const App = () => {
   const stageRef = useRef();
@@ -28,6 +27,15 @@ const App = () => {
 
   const isDraggable = action === ACTIONS.SELECT;
 
+  // Function to reset all shapes to empty arrays
+  const clearCanvas = async () => {
+    setRectangles([]);
+    setCircles([]);
+    setArrows([]);
+    setLines([]);
+    setScribbles([]);
+    await deleteShapes()
+  };
 
   // mouse clicked
   const handleMouseDown = () => {
@@ -161,7 +169,7 @@ const App = () => {
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
   }
-  
+
   useEffect(() => {
     const getShapeData = async () => {
       try {
@@ -217,7 +225,7 @@ const App = () => {
   return (
     <div className="container">
 
-      <Remote action={action} handleClick={handleClick}
+      <Remote action={action} handleClick={handleClick} clearCanvas={clearCanvas}
         setStrokeSize={setStrokeSize} setStrokeColor={setStrokeColor} />
 
       <div className="canvas-container">

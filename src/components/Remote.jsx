@@ -8,7 +8,7 @@ import { IoRemoveOutline } from "react-icons/io5";
 import { CiText } from "react-icons/ci";
 import { ACTIONS } from "../constants/constants";
 
-function Remote({ action, handleClick, outlineColor,  setStrokeSize,setStrokeColor }) {
+function Remote({ action, handleClick, outlineColor, setStrokeSize, setStrokeColor, clearCanvas }) {
 
 
     return (
@@ -58,7 +58,7 @@ function Remote({ action, handleClick, outlineColor,  setStrokeSize,setStrokeCol
 
             </div>
 
-            <button className="clear-button" onClick={() => setLines([])}>
+            <button className="clear-button" onClick={() => clearCanvas()}>
                 Clear
             </button>
 
